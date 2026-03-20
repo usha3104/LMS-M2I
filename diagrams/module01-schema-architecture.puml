@@ -1,0 +1,529 @@
+@startuml M2I_LMS_Module01_Schema_Architecture
+!theme plain
+hide stereotype
+
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam roundcorner 10
+skinparam maxMessageSize 150
+
+title M2I LMS - Module 01: Authentication & Onboarding Schema Architecture
+
+package "Database Schema" {
+    package "Users" {
+        [users]
+        [super_admins]
+        [netpy_admins]
+        [college_admins]
+        [mentors]
+        [students]
+        [companies]
+    }
+    
+    package "Authentication" {
+        [otp_verifications]
+        [sessions]
+        [two_factor_auth]
+        [password_resets]
+    }
+    
+    package "Student Application" {
+        [student_applications]
+        [application_documents]
+        [interviews]
+    }
+    
+    package "College & Batch" {
+        [colleges]
+        [college_contacts]
+        [college_programs]
+        [batches]
+    }
+}
+
+package "API Endpoints" {
+    [Auth APIs]
+    [Application APIs]
+    [Onboarding APIs]
+    [College APIs]
+}
+
+package "Data Models" {
+    [User Models]
+    [Application Models]
+    [Interview Models]
+    [Mentor Models]
+    [College Models]
+    [Batch Models]
+}
+
+package "Flows" {
+    [Login Flow]
+    [OTP Flow]
+    [Student Onboarding Flow]
+    [Mentor Onboarding Flow]
+    [College Onboarding Flow]
+}
+
+package "RBAC" {
+    [Permissions Matrix]
+}
+
+users --> super_admins : "1:1"
+users --> netpy_admins : "1:1"
+users --> college_admins : "1:1"
+users --> mentors : "1:1"
+users --> students : "1:1"
+users --> companies : "1:1"
+
+users --> otp_verifications : "1:M"
+users --> sessions : "1:M"
+users --> two_factor_auth : "1:1"
+users --> password_resets : "1:M"
+
+students --> student_applications : "M:1"
+student_applications --> application_documents : "1:M"
+student_applications --> interviews : "1:M"
+
+colleges --> college_contacts : "1:M"
+colleges --> college_programs : "1:M"
+colleges --> batches : "1:M"
+colleges --> student_applications : "1:M"
+colleges --> college_admins : "1:M"
+
+@enduml
+
+@startuml M2I_LMS_ER_Diagram
+!theme plain
+
+entity "users" as users {
+    * id : UUID <<PK>>
+    * email : VARCHAR
+    -- username : VARCHAR
+    * password_hash : VARCHAR
+    * role : ENUM
+    * role_id : UUID
+    * is_active : BOOLEAN
+    * is_verified : BOOLEAN
+    -- created_at : TIMESTAMP
+    -- updated_at : TIMESTAMP
+    -- last_login : TIMESTAMP
+    -- failed_login_attempts : INT
+}
+
+entity "super_admins" as super_admins {
+    * id : UUID <<PK>>
+    * user_id : UUID <<FK>>
+    * full_name : VARCHAR
+    -- phone : VARCHAR
+    -- profile_image : VARCHAR
+    -- created_at : TIMESTAMP
+}
+
+entity "netpy_admins" as netpy_admins {
+    * id : UUID <<PK>>
+    * user_id : UUID <<FK>>
+    * full_name : VARCHAR
+    -- phone : VARCHAR
+    -- assigned_colleges : UUID[]
+    -- profile_image : VARCHAR
+    -- created_at : TIMESTAMP
+    -- updated_at : TIMESTAMP
+}
+
+entity "college_admins" as college_admins {
+    * id : UUID <<PK>>
+    * user_id : UUID <<FK>>
+    * college_id : UUID <<FK>>
+    * full_name : VARCHAR
+    -- phone : VARCHAR
+    -- department : VARCHAR
+    -- profile_image : VARCHAR
+    -- created_at : TIMESTAMP
+    -- updated_at : TIMESTAMP
+}
+
+entity "mentors" as mentors {
+    * id : UUID <<PK>>
+    * user_id : UUID <<FK>>
+    * full_name : VARCHAR
+    * phone : VARCHAR
+    -- date_of_birth : DATE
+    -- gender : ENUM
+    -- profile_image : VARCHAR
+    -- bio : TEXT
+    -- linkedin_url : VARCHAR
+    -- github_url : VARCHAR
+    -- years_experience : INT
+    -- current_company : VARCHAR
+    -- current_designation : VARCHAR
+    -- teaching_expertise : JSON
+    -- certifications : JSON
+    -- verification_status : ENUM
+    -- verified_by : UUID
+    -- verified_at : TIMESTAMP
+    -- created_at : TIMESTAMP
+    -- updated_at : TIMESTAMP
+}
+
+entity "students" as students {
+    * id : UUID <<PK>>
+    * user_id : UUID <<FK>>
+    * application_id : UUID <<FK>>
+    -- college_id : UUID <<FK>>
+    -- batch_id : UUID <<FK>>
+    * full_name : VARCHAR
+    * phone : VARCHAR
+    -- date_of_birth : DATE
+    -- gender : ENUM
+    -- profile_image : VARCHAR
+    -- aadhar_number : VARCHAR
+    -- address : JSON
+    -- guardian_name : VARCHAR
+    -- guardian_phone : VARCHAR
+    -- application_path : ENUM
+    -- enrollment_date : DATE
+    -- verification_status : ENUM
+    -- created_at : TIMESTAMP
+    -- updated_at : TIMESTAMP
+}
+
+entity "companies" as companies {
+    * id : UUID <<PK>>
+    * user_id : UUID <<FK>>
+    * company_name : VARCHAR
+    -- company_website : VARCHAR
+    -- company_logo : VARCHAR
+    -- industry : VARCHAR
+    -- company_size : ENUM
+    -- description : TEXT
+    -- contact_person_name : VARCHAR
+    -- contact_person_email : VARCHAR
+    -- contact_person_phone : VARCHAR
+    -- verification_status : ENUM
+    -- verified_by : UUID
+    -- verified_at : TIMESTAMP
+    -- created_at : TIMESTAMP
+    -- updated_at : TIMESTAMP
+}
+
+users ||--|| super_admins
+users ||--|| netpy_admins
+users ||--|| college_admins
+users ||--|| mentors
+users ||--|| students
+users ||--|| companies
+
+@enduml
+
+@startuml M2I_LMS_Auth_Flow
+!theme plain
+hide footbox
+
+title M2I LMS - Authentication Flow
+
+actor "User" as user
+participant "Client" as client
+participant "API Gateway" as gateway
+participant "Auth Service" as auth
+participant "Database" as db
+participant "Email/SMS" as notification
+
+== Login Flow ==
+
+user -> client : Enter credentials
+client -> gateway : POST /api/v1/auth/login
+gateway -> auth : Validate credentials
+auth -> db : Check user credentials
+db -> auth : User found
+
+alt OTP Required
+    auth -> db : Create OTP
+    db -> auth : OTP saved
+    auth -> notification : Send OTP
+    notification -> user : OTP received
+    user -> client : Enter OTP
+    client -> gateway : POST /api/v1/auth/otp/verify
+    gateway -> auth : Verify OTP
+    auth -> db : Check OTP validity
+    db -> auth : OTP valid
+    
+    alt 2FA Enabled
+        auth -> user : Request 2FA code
+        user -> client : Enter 2FA
+        client -> gateway : POST /api/v1/auth/2fa/verify
+        gateway -> auth : Verify 2FA
+        auth -> db : Check 2FA
+    end
+end
+
+auth -> db : Create session
+db -> auth : Session created
+auth -> gateway : Return tokens
+gateway -> client : Login successful
+client -> user : Redirect to dashboard
+
+== Role-Based Routing ==
+
+alt Role = SUPER_ADMIN
+    client -> user : Redirect to Super Admin Dashboard
+else Role = NETPY_ADMIN
+    client -> user : Redirect to NetPy Admin Dashboard
+else Role = COLLEGE_ADMIN
+    client -> user : Redirect to College Dashboard
+else Role = MENTOR
+    client -> user : Redirect to Mentor Dashboard
+else Role = COMPANY
+    client -> user : Redirect to Company Dashboard
+else Role = STUDENT
+    client -> user : Redirect to Student Dashboard
+end
+
+@enduml
+
+@startuml M2I_LMS_Student_Onboarding
+!theme plain
+hide footbox
+
+title M2I LMS - Student Onboarding Flow
+
+start
+
+:Select Role: Student;
+
+if (Application Path?) then (College-side)
+    :College distributes NetPy Form;
+    :Student submits to College Admin;
+    :College Admin reviews;
+    :Forward to NetPy;
+else (Direct)
+    :Student fills form on Portal;
+    :Submit directly to NetPy;
+endif
+
+:Submit Application Form;
+:Upload Documents;
+
+:Eligibility Check;
+
+if (Eligible?) then (Yes)
+    :Document Verification;
+    
+    if (Documents Verified?) then (Yes)
+        :AI-assisted Scoring;
+        :Send Interview Invitation;
+        :Self-service Scheduling;
+        :Conduct Interview;
+        
+        if (Selected?) then (Yes)
+            :Create User Account;
+            :Profile Configuration;
+            :Assign Batch;
+            :Enable Dashboard Access;
+            stop
+        else (No)
+            :Professional Rejection;
+            stop
+        endif
+    else (No)
+        :Request Resubmission;
+        stop
+    endif
+else (No)
+    :Reject Application;
+    stop
+endif
+
+@enduml
+
+@startuml M2I_LMS_Mentor_Onboarding
+!theme plain
+hide footbox
+
+title M2I LMS - Mentor Onboarding Flow
+
+start
+
+:Select Role: Mentor;
+
+:Enter Personal Information;
+:Add Professional Experience;
+:Add Teaching Expertise;
+:Upload Certifications;
+:Submit Application;
+
+:Admin Verification;
+
+if (Verified?) then (Yes)
+    :Create Mentor Profile;
+    :Redirect to Mentor Dashboard;
+    stop
+else (No)
+    :Reject Application;
+    stop
+endif
+
+@enduml
+
+@startuml M2I_LMS_College_Onboarding
+!theme plain
+hide footbox
+
+title M2I LMS - College Onboarding Flow
+
+start
+
+:Select Role: College;
+
+:Enter Institution Details;
+:Add Admin Contact;
+:Submit Program Details;
+:Submit Application;
+
+:Admin Approval;
+
+if (Approved?) then (Yes)
+    :Create College Profile;
+    :Create College Admin Account;
+    :Redirect to College Dashboard;
+    stop
+else (No)
+    :Reject Application;
+    stop
+endif
+
+@enduml
+
+@startuml M2I_LMS_Application_Status_SM
+!theme plain
+hide footbox
+
+title M2I LMS - Application Status State Machine
+
+[*] --> SUBMITTED
+SUBMITTED --> UNDER_REVIEW : Review Started
+UNDER_REVIEW --> DOCUMENTS_PENDING : Need More Docs
+DOCUMENTS_PENDING --> UNDER_REVIEW : Docs Submitted
+UNDER_REVIEW --> INTERVIEW_SCHEDULED : Schedule Interview
+INTERVIEW_SCHEDULED --> INTERVIEW_COMPLETED : Interview Done
+INTERVIEW_COMPLETED --> SELECTED : Selected
+INTERVIEW_COMPLETED --> REJECTED : Rejected
+
+SUBMITTED --> REJECTED : Ineligible
+UNDER_REVIEW --> REJECTED : Rejected
+DOCUMENTS_PENDING --> REJECTED : Rejected
+INTERVIEW_SCHEDULED --> REJECTED : Cancelled
+
+SELECTED --> [*]
+REJECTED --> [*]
+
+@enduml
+
+@startuml M2I_LMS_RBAC_Matrix
+!theme plain
+hide stereotype
+
+title M2I LMS - Role-Based Access Control Matrix
+
+| Permission | Super Admin | NetPy Admin | College Admin | Mentor | Student | Company |
+|------------|:------------:|:------------:|:-------------:|:------:|:-------:|:-------:|
+| System Config | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Create College | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Create NetPy Admin | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Create College Admin | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
+| Create Mentor | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
+| View All Applications | ✓ | ✓ | ✓ | ✗ | ✗ | ✗ |
+| Review Applications | ✓ | ✓ | ✓ | ✗ | ✗ | ✗ |
+| Schedule Interviews | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ |
+| Select/Reject | ✓ | ✓ | ✓ | ✗ | ✗ | ✗ |
+| Create Batch | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
+| View Reports | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
+| View Own Profile | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Submit Application | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
+| View Student Profiles | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+
+@enduml
+
+@startuml M2I_LMS_Class_Diagram
+!theme plain
+
+class User {
+    +id: UUID
+    +email: String
+    +username: String
+    +passwordHash: String
+    +role: UserRole
+    +roleId: UUID
+    +isActive: Boolean
+    +isVerified: Boolean
+    +createdAt: DateTime
+    +lastLogin: DateTime
+}
+
+class StudentApplication {
+    +id: UUID
+    +applicationNumber: String
+    +fullName: String
+    +email: String
+    +phone: String
+    +applicationPath: ApplicationPath
+    +status: ApplicationStatus
+    +eligibilityStatus: EligibilityStatus
+    +aiScore: Number
+    +interviewId: UUID
+}
+
+class Interview {
+    +id: UUID
+    +applicationId: UUID
+    +interviewerId: UUID
+    +scheduledDate: Date
+    +scheduledTime: Time
+    +status: InterviewStatus
+    +technicalScore: Number
+    +behavioralScore: Number
+    +result: InterviewResult
+}
+
+class Mentor {
+    +id: UUID
+    +fullName: String
+    +phone: String
+    +yearsExperience: Number
+    +currentCompany: String
+    +teachingExpertise: TeachingExpertise[]
+    +certifications: Certification[]
+    +verificationStatus: VerificationStatus
+}
+
+class College {
+    +id: UUID
+    +collegeCode: String
+    +collegeName: String
+    +affiliation: String
+    +university: String
+    +institutionType: InstitutionType
+    +status: CollegeStatus
+    +verificationStatus: VerificationStatus
+}
+
+class Batch {
+    +id: UUID
+    +batchCode: String
+    +batchName: String
+    +collegeId: UUID
+    +batchType: BatchType
+    +startDate: Date
+    +endDate: Date
+    +maxStudents: Number
+    +status: BatchStatus
+}
+
+User <|-- StudentApplication
+User <|-- Mentor
+User <|-- College
+StudentApplication --> Interview
+College --> Batch
+StudentApplication --> College
+
+@enduml

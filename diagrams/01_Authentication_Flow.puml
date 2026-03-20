@@ -1,0 +1,48 @@
+@startuml Authentication_Flow
+title NetPy M2i LMS - Authentication Flow
+
+start
+:User Opens Platform;
+
+if (Existing Account?) then (Yes)
+
+:Login with Email / Username + Password;
+:Send OTP;
+
+if (OTP Valid?) then (Yes)
+
+:Optional 2FA;
+:Session Established;
+:Identify User Role;
+
+if (Role?) then (Super Admin)
+:Redirect to Super Admin Dashboard;
+
+elseif (NetPy Admin)
+:Redirect to NetPy Admin Dashboard;
+
+elseif (College Admin)
+:Redirect to College Dashboard;
+
+elseif (Mentor)
+:Redirect to Mentor Dashboard;
+
+elseif (Company)
+:Redirect to Company Dashboard;
+
+else (Student)
+:Redirect to Student Dashboard;
+
+endif
+
+else (No)
+:Show Error;
+:Retry OTP;
+endif
+
+else (No Account)
+:Go to Registration / Application Flow;
+endif
+
+stop
+@enduml

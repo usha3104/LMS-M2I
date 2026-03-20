@@ -1,0 +1,21 @@
+@startuml College_Onboarding
+title NetPy M2i LMS - College Onboarding
+
+start
+
+:Start College Onboarding;
+
+:Enter Institution Details;
+
+:Add Admin Contact;
+
+:Submit Program Details;
+
+:Admin Approval;
+
+:Create College Profile;
+
+:Redirect to College Dashboard;
+
+stop
+@enduml

@@ -1,0 +1,361 @@
+@startuml M2I_LMS_Module01_ERD_Simplified
+!theme plain
+skinparam linetype ortho
+skinparam maxMessageSize 100
+skinparam Padding 3
+
+title M2I LMS - Module 01 ER Diagram (Simplified)
+
+' ============================================
+' USERS - Central Entity
+' ============================================
+
+entity "**users**\n<<Master>>" as users {
+    *id <<PK>>
+    --
+    email
+    username
+    password_hash
+    role
+    role_id
+    --
+    is_active
+    is_verified
+    failed_login_attempts
+    --
+    created_at
+    updated_at
+    last_login
+}
+
+' ============================================
+' AUTHENTICATION
+' ============================================
+
+entity "**otp_verifications**" as otp {
+    *id <<PK>>
+    --
+    user_id <<FK>>
+    otp_code
+    otp_type
+    --
+    expires_at
+    is_used
+    --
+    created_at
+    ip_address
+}
+
+entity "**sessions**" as sessions {
+    *id <<PK>>
+    --
+    user_id <<FK>>
+    session_token
+    refresh_token
+    --
+    ip_address
+    user_agent
+    device_info
+    --
+    expires_at
+    --
+    created_at
+    last_activity
+}
+
+entity "**two_factor_auth**" as tfa {
+    *id <<PK>>
+    --
+    user_id <<FK>>
+    secret_key
+    --
+    is_enabled
+    backup_codes
+    --
+    created_at
+    updated_at
+}
+
+users ||--o{ otp
+users ||--o{ sessions
+users ||--|| tfa
+
+' ============================================
+' ROLES
+' ============================================
+
+entity "**super_admins**" as super_admins {
+    *id <<PK>>
+    user_id <<FK>>
+    full_name
+    phone
+    profile_image
+    created_at
+}
+
+entity "**netpy_admins**" as netpy_admins {
+    *id <<PK>>
+    user_id <<FK>>
+    full_name
+    phone
+    assigned_colleges
+    profile_image
+    created_at
+}
+
+entity "**college_admins**" as college_admins {
+    *id <<PK>>
+    user_id <<FK>>
+    college_id <<FK>>
+    full_name
+    phone
+    department
+    created_at
+}
+
+entity "**mentors**" as mentors {
+    *id <<PK>>
+    user_id <<FK>>
+    full_name
+    phone
+    date_of_birth
+    gender
+    profile_image
+    bio
+    linkedin_url
+    github_url
+    years_experience
+    current_company
+    current_designation
+    teaching_expertise
+    certifications
+    verification_status
+    verified_by
+    verified_at
+    created_at
+}
+
+entity "**students**" as students {
+    *id <<PK>>
+    user_id <<FK>>
+    application_id <<FK>>
+    college_id <<FK>>
+    batch_id <<FK>>
+    full_name
+    phone
+    date_of_birth
+    gender
+    profile_image
+    aadhar_number
+    address
+    guardian_name
+    guardian_phone
+    application_path
+    enrollment_date
+    verification_status
+    created_at
+}
+
+entity "**companies**" as companies {
+    *id <<PK>>
+    user_id <<FK>>
+    company_name
+    company_website
+    company_logo
+    industry
+    company_size
+    description
+    contact_person_name
+    contact_person_email
+    contact_person_phone
+    verification_status
+    verified_by
+    verified_at
+    created_at
+}
+
+users ||--|| super_admins
+users ||--|| netpy_admins
+users ||--|| college_admins
+users ||--|| mentors
+users ||--|| students
+users ||--|| companies
+
+' ============================================
+' COLLEGES
+' ============================================
+
+entity "**colleges**" as colleges {
+    *id <<PK>>
+    --
+    college_code
+    college_name
+    affiliation
+    university
+    --
+    address
+    phone
+    email
+    website
+    logo
+    --
+    institution_type
+    approved_programs
+    --
+    status
+    verification_status
+    verified_by
+    verified_at
+    --
+    created_at
+    updated_at
+}
+
+entity "**college_contacts**" as college_contacts {
+    *id <<PK>>
+    college_id <<FK>>
+    contact_type
+    full_name
+    designation
+    email
+    phone
+    is_primary
+    created_at
+}
+
+entity "**college_programs**" as college_programs {
+    *id <<PK>>
+    college_id <<FK>>
+    program_name
+    program_code
+    department
+    duration_years
+    status
+    created_at
+}
+
+entity "**batches**" as batches {
+    *id <<PK>>
+    --
+    batch_code
+    batch_name
+    college_id <<FK>>
+    --
+    batch_type
+    --
+    start_date
+    end_date
+    --
+    max_students
+    current_students
+    --
+    status
+    --
+    created_by <<FK>>
+    created_at
+    updated_at
+}
+
+colleges ||--o{ college_contacts
+colleges ||--o{ college_programs
+colleges ||--o{ batches
+colleges ||--o{ college_admins
+
+' ============================================
+' STUDENT APPLICATIONS
+' ============================================
+
+entity "**student_applications**" as applications {
+    *id <<PK>>
+    --
+    application_number
+    --
+    full_name
+    email
+    phone
+    --
+    date_of_birth
+    gender
+    --
+    application_path
+    college_id <<FK>>
+    --
+    applied_at
+    --
+    status
+    --
+    eligibility_status
+    eligibility_notes
+    --
+    document_verification_status
+    document_verified_by
+    document_verified_at
+    --
+    ai_score
+    ai_score_breakdown
+    --
+    interview_id <<FK>>
+    --
+    rejection_reason
+    rejection_email_sent
+    --
+    created_at
+    updated_at
+}
+
+entity "**application_documents**" as app_docs {
+    *id <<PK>>
+    application_id <<FK>>
+    --
+    document_type
+    --
+    file_path
+    file_name
+    file_size
+    mime_type
+    --
+    is_verified
+    verified_by
+    verified_at
+    rejection_reason
+    --
+    uploaded_at
+    created_at
+}
+
+entity "**interviews**" as interviews {
+    *id <<PK>>
+    --
+    application_id <<FK>>
+    --
+    interviewer_id <<FK>>
+    --
+    interview_type
+    --
+    scheduled_date
+    scheduled_time
+    duration_minutes
+    meeting_link
+    --
+    status
+    --
+    technical_score
+    behavioral_score
+    overall_feedback
+    --
+    result
+    --
+    completed_at
+    created_at
+    updated_at
+}
+
+colleges ||--o{ applications
+applications ||--o{ app_docs
+applications ||--|| interviews
+students }o--|| applications
+students }o--|| colleges
+students }o--|| batches
+batches }o--|| users
+
+@enduml

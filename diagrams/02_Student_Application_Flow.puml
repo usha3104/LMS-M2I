@@ -1,0 +1,45 @@
+@startuml Student_Application_Flow
+title NetPy M2i LMS - Student Application & Screening
+
+start
+
+:Student Applies;
+
+if (Application Path?) then (College Student)
+
+:College distributes NetPy Form;
+:Student submits form to College Admin;
+:College Admin reviews;
+:Forward application to NetPy;
+
+else (Direct Student)
+
+:Student fills form on NetPy Portal;
+:Submit application directly to NetPy;
+
+endif
+
+:Eligibility Checks;
+:Document Verification;
+:AI-assisted Application Scoring;
+
+:Send Interview Invitation;
+:Self-service Interview Scheduling;
+
+:Conduct Technical + Behavioral Interview;
+
+if (Selected?) then (Yes)
+
+:Secure Account Creation;
+:Profile Configuration;
+:Assign Batch (College / Open);
+:Dashboard Access Enabled;
+
+else (No)
+
+:Professional Rejection Handling;
+
+endif
+
+stop
+@enduml

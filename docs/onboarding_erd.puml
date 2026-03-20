@@ -1,0 +1,171 @@
+@startuml Onboarding_ERD
+
+!theme plain
+skinparam linetype ortho
+skinparam entityBackgroundColor #FFFFFF
+skinparam attributeBackgroundColor #f0f0f0
+skinparam attributeFontColor #000000
+skinparam entityFontColor #000000
+
+hide circle
+hide methods
+
+entity "User" as user {
+    * id : UUID
+    * email : VARCHAR(255)
+    * password_hash : VARCHAR(255)
+    * role : ENUM
+    * status : ENUM
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "Student" as student {
+    * id : UUID
+    * user_id : UUID <<FK>>
+    * application_id : UUID <<FK>>
+    * first_name : VARCHAR(100)
+    * last_name : VARCHAR(100)
+    * phone : VARCHAR(20)
+    * enrollment_type : ENUM
+    * college_id : UUID <<FK>>
+    * batch_id : UUID <<FK>>
+    * status : ENUM
+    * onboarding_status : ENUM
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "Mentor" as mentor {
+    * id : UUID
+    * user_id : UUID <<FK>>
+    * first_name : VARCHAR(100)
+    * last_name : VARCHAR(100)
+    * phone : VARCHAR(20)
+    * expertise : TEXT
+    * verification_status : ENUM
+    * status : ENUM
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "College" as college {
+    * id : UUID
+    * name : VARCHAR(255)
+    * code : VARCHAR(50)
+    * email : VARCHAR(255)
+    * phone : VARCHAR(20)
+    * address : TEXT
+    * admin_user_id : UUID <<FK>>
+    * status : ENUM
+    * approval_status : ENUM
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "CollegeAdmin" as college_admin {
+    * id : UUID
+    * user_id : UUID <<FK>>
+    * college_id : UUID <<FK>>
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "NetPyAdmin" as netpy_admin {
+    * id : UUID
+    * user_id : UUID <<FK>>
+    * assigned_colleges : JSON
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "Application" as application {
+    * id : UUID
+    * applicant_type : ENUM
+    * student_name : VARCHAR(200)
+    * email : VARCHAR(255)
+    * phone : VARCHAR(20)
+    * college_id : UUID <<FK>>
+    * status : ENUM
+    * screening_score : DECIMAL
+    * interview_score : DECIMAL
+    * decision : ENUM
+    * submitted_at : TIMESTAMP
+    * processed_at : TIMESTAMP
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "Interview" as interview {
+    * id : UUID
+    * application_id : UUID <<FK>>
+    * scheduled_at : TIMESTAMP
+    * interviewer_id : UUID <<FK>>
+    * status : ENUM
+    * score : DECIMAL
+    * feedback : TEXT
+    * conducted_at : TIMESTAMP
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "Batch" as batch {
+    * id : UUID
+    * name : VARCHAR(100)
+    * course_id : UUID <<FK>>
+    * mentor_id : UUID <<FK>>
+    * batch_type : ENUM
+    * start_date : DATE
+    * end_date : DATE
+    * status : ENUM
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "Course" as course {
+    * id : UUID
+    * name : VARCHAR(255)
+    * description : TEXT
+    * duration_months : INT
+    * modules : JSON
+    * evaluation_criteria : JSON
+    * status : ENUM
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+entity "OnboardingStatus" as onboarding_status {
+    * id : UUID
+    * entity_type : ENUM
+    * entity_id : UUID
+    * current_step : ENUM
+    * token : VARCHAR(255)
+    * completed_steps : JSON
+    * expires_at : TIMESTAMP
+    * created_at : TIMESTAMP
+    * updated_at : TIMESTAMP
+}
+
+user ||--|| student : "1:1"
+user ||--|| mentor : "1:1"
+user ||--|| college_admin : "1:1"
+user ||--|| netpy_admin : "1:1"
+
+college ||--o{ student : "enrolls"
+college ||--|| college_admin : "has"
+college ||--o{ application : "receives"
+college ||--o{ batch : "hosts"
+
+student }o--|| application : "applies via"
+student }o--|| batch : "assigned to"
+student }o--|| onboarding_status : "tracked by"
+
+mentor ||--o{ batch : "teaches"
+mentor }o--|| interview : "conducts"
+
+application ||--|| interview : "scheduled for"
+application ||--|| onboarding_status : "generates"
+
+batch }o--|| course : "follows"
+
+@enduml

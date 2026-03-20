@@ -1,0 +1,718 @@
+' ============================================
+' M2I LMS - Module 01: Authentication, Governance & Onboarding
+' C4 Architecture - PlantUML Diagrams
+' ============================================
+' Version: 1.0
+' Last Updated: 2026-03-18
+' Purpose: C4 Architecture for Authentication, Role-based Governance, and Onboarding Flows
+' ============================================
+
+' ============================================
+' LEVEL 1: SYSTEM CONTEXT DIAGRAM
+' ============================================
+@startuml LEVEL1_SYSTEM_CONTEXT
+!theme plain
+skinparam linetype ortho
+skinparam componentStyle rectangle
+
+title [Level 1] System Context - M2I LMS
+
+package "External Entities" {
+    actor Student
+    actor Mentor
+    actor College
+    actor Company
+    actor Admin <<Platform Admin\n(Super Admin / NetPy Admin)>>
+}
+
+package "External Systems" {
+    database "Email Service"
+    database "SMS Service"
+}
+
+package "M2I LMS System" {
+    component "Authentication Module" as AuthModule
+    component "Onboarding Module" as OnboardingModule
+    component "Application Screening Module" as ScreeningModule
+    component "Dashboard Module" as DashboardModule
+    database "(Database)" as Database
+}
+
+Student --> AuthModule : Login/Register
+Student --> OnboardingModule : Apply for Program
+Mentor --> OnboardingModule : Apply as Mentor
+College --> OnboardingModule : Register Institution
+Company --> OnboardingModule : Apply
+Admin --> AuthModule : Manage Users
+Admin --> ScreeningModule : Review Applications
+
+AuthModule --> EmailService : Send OTP
+AuthModule --> SMSService : Send OTP
+AuthModule --> Database : Store/Retrieve
+OnboardingModule --> Database : Store
+ScreeningModule --> Database : Store
+DashboardModule --> Database : Retrieve User Data
+
+@enduml
+
+' ============================================
+' LEVEL 2: CONTAINER DIAGRAM
+' ============================================
+@startuml LEVEL2_CONTAINER
+!theme plain
+skinparam linetype ortho
+skinparam componentStyle rectangle
+
+title [Level 2] Container Diagram - M2I LMS
+
+package "Frontend Container" {
+    component "Web Application\n(React/Next.js)" as WebApp
+    component "Mobile App\n(React Native)" as MobileApp
+}
+
+package "API Gateway" {
+    component "API Gateway\n(Authentication, Rate Limiting)" as APIGateway
+}
+
+package "Backend Services" {
+    component "Auth Service\n(Login, OTP, 2FA, Sessions)" as AuthService
+    component "Onboarding Service\n(Student, Mentor, College)" as OnboardingService
+    component "Screening Service\n(Eligibility, Scoring, Interview)" as ScreeningService
+    component "Dashboard Service\n(Role-based routing)" as DashboardService
+}
+
+package "Data Layer" {
+    database "PostgreSQL Database" as DB
+    database "Redis Cache\n(Session, OTP)" as Cache
+}
+
+package "External Services" {
+    component "Email Service" as EmailService
+    component "SMS Service" as SMSService
+    component "AI Scoring Service" as AIService
+}
+
+WebApp --> APIGateway : HTTPS
+MobileApp --> APIGateway : HTTPS
+
+APIGateway --> AuthService : Internal
+APIGateway --> OnboardingService : Internal
+APIGateway --> ScreeningService : Internal
+APIGateway --> DashboardService : Internal
+
+AuthService --> Cache : Store Session
+AuthService --> DB : Store Data
+OnboardingService --> DB : Store Data
+ScreeningService --> DB : Store Data
+ScreeningService --> AIService : AI Score
+
+AuthService --> EmailService : Send Email
+AuthService --> SMSService : Send SMS
+OnboardingService --> EmailService : Send Email
+ScreeningService --> EmailService : Send Email
+ScreeningService --> SMSService : Send SMS
+
+@enduml
+
+' ============================================
+' LEVEL 3: AUTH COMPONENTS
+' ============================================
+@startuml LEVEL3_AUTH_COMPONENTS
+!theme plain
+skinparam linetype ortho
+skinparam componentStyle rectangle
+
+title [Level 3] Component - Auth Service
+
+package "Auth Service Components" {
+    component "AuthController\n(Request handling)" as AuthController
+    component "LoginHandler\n(Credential validation)" as LoginHandler
+    component "OTPManager\n(Generation, Validation)" as OTPManager
+    component "SessionManager\n(Token generation, validation)" as SessionManager
+    component "2FA Manager\n(TOTP, Backup codes)" as TwoFactorAuth
+    component "PasswordManager\n(Hash, Reset)" as PasswordManager
+    component "RoleResolver\n(5-tier governance)" as RoleResolver
+}
+
+package "Data Layer" {
+    component "User Repository" as UserRepo
+    component "Session Repository" as SessionRepo
+    component "OTP Repository" as OTPRepo
+}
+
+AuthController --> LoginHandler : Validate
+LoginHandler --> OTPManager : Generate
+LoginHandler --> TwoFactorAuth : Check
+LoginHandler --> SessionManager : Create
+LoginHandler --> RoleResolver : Resolve
+LoginHandler --> PasswordManager : Manage
+
+OTPManager --> OTPRepo : Store/Verify
+SessionManager --> SessionRepo : Store
+LoginHandler --> UserRepo : Query User
+RoleResolver --> UserRepo : Query User
+
+@enduml
+
+' ============================================
+' LEVEL 3: ONBOARDING COMPONENTS
+' ============================================
+@startuml LEVEL3_ONBOARDING_COMPONENTS
+!theme plain
+skinparam linetype ortho
+skinparam componentStyle rectangle
+
+title [Level 3] Component - Onboarding Service
+
+package "Onboarding Service Components" {
+    component "OnboardController" as OnboardController
+    component "Student Onboarding\n(Dual path: College-side/Direct)" as StudentOnboard
+    component "Mentor Onboarding" as MentorOnboard
+    component "College Onboarding" as CollegeOnboard
+    component "Company Onboarding" as CompanyOnboard
+    component "Batch Assigner\n(College-specific/Open)" as BatchAssigner
+    component "Profile Builder" as ProfileBuilder
+}
+
+package "Data Layer" {
+    component "Student Application Repo" as StudentAppRepo
+    component "Mentor Repository" as MentorRepo
+    component "College Repository" as CollegeRepo
+    component "Batch Repository" as BatchRepo
+}
+
+OnboardController --> StudentOnboard : Route
+OnboardController --> MentorOnboard : Route
+OnboardController --> CollegeOnboard : Route
+OnboardController --> CompanyOnboard : Route
+
+StudentOnboard --> ProfileBuilder : Create
+StudentOnboard --> BatchAssigner : Assign
+StudentOnboard --> StudentAppRepo : Store
+MentorOnboard --> MentorRepo : Store
+CollegeOnboard --> CollegeRepo : Store
+BatchAssigner --> BatchRepo : Query/Update
+
+@enduml
+
+' ============================================
+' LEVEL 3: SCREENING COMPONENTS
+' ============================================
+@startuml LEVEL3_SCREENING_COMPONENTS
+!theme plain
+skinparam linetype ortho
+skinparam componentStyle rectangle
+
+title [Level 3] Component - Screening Service
+
+package "Screening Service Components" {
+    component "ScreenController" as ScreenController
+    component "Eligibility Checker" as EligibilityCheck
+    component "Document Verifier" as DocVerifier
+    component "AI Scoring Engine" as AIScorer
+    component "Interview Scheduler" as InterviewScheduler
+    component "Selection Manager" as SelectionManager
+}
+
+package "Data Layer" {
+    component "Application Repository" as ApplicationRepo
+    component "Interview Repository" as InterviewRepo
+}
+
+ScreenController --> EligibilityCheck : Process
+ScreenController --> DocVerifier : Process
+ScreenController --> AIScorer : Score
+ScreenController --> InterviewScheduler : Schedule
+ScreenController --> SelectionManager : Decide
+
+EligibilityCheck --> ApplicationRepo : Update
+DocVerifier --> ApplicationRepo : Update
+AIScorer --> ApplicationRepo : Store Score
+InterviewScheduler --> InterviewRepo : Create
+SelectionManager --> ApplicationRepo : Update
+
+@enduml
+
+' ============================================
+' LEVEL 4: DEPLOYMENT DIAGRAM
+' ============================================
+@startuml LEVEL4_DEPLOYMENT
+!theme plain
+skinparam linetype ortho
+skinparam componentStyle rectangle
+
+title [Level 4] Deployment - Kubernetes on Cloud
+
+actor Browser
+actor Mobile
+
+package "User Devices" {
+    node "Web Browser" as BrowserNode
+    node "Mobile Device" as MobileNode
+}
+
+package "Cloud Infrastructure - AWS/Azure/GCP" {
+    component "Application Load Balancer\n(SSL Termination)" as LB
+    
+    package "Kubernetes Cluster" {
+        package "Frontend Pods" {
+            component "Web App Pod\n(Replicas: 2+)" as WebPod
+            component "Mobile API Pod\n(Replicas: 2+)" as MobileAPI
+        }
+        
+        package "Backend Pods" {
+            component "Auth Service Pod\n(Replicas: 2+)" as AuthPod
+            component "Onboarding Service Pod\n(Replicas: 2+)" as OnboardPod
+            component "Screening Service Pod\n(Replicas: 2+)" as ScreenPod
+            component "Dashboard Service Pod\n(Replicas: 2+)" as DashboardPod
+        }
+    }
+    
+    package "Data Layer" {
+        database "PostgreSQL Primary\n(RDS Multi-AZ)" as DBPrimary
+        database "PostgreSQL Replica\n(Read Replica)" as DBReplica
+        database "Redis Cluster\n(ElastiCache)" as RedisCluster
+    }
+    
+    package "External Services" {
+        component "Email Service\n(SendGrid SES)" as EmailSvc
+        component "SMS Service\n(Twilio SNS)" as SMSSvc
+        component "AI Service\n(Lambda/Cloud Function)" as AISvc
+    }
+}
+
+BrowserNode --> LB : HTTPS
+MobileNode --> LB : HTTPS
+LB --> WebPod : Route
+LB --> MobileAPI : Route
+
+WebPod --> AuthPod : HTTP
+WebPod --> OnboardPod : HTTP
+WebPod --> ScreenPod : HTTP
+
+AuthPod --> RedisCluster : TCP
+AuthPod --> DBPrimary : TCP
+OnboardPod --> DBPrimary : TCP
+ScreenPod --> DBPrimary : TCP
+
+DBPrimary --> DBReplica : Replication
+
+AuthPod --> EmailSvc : API
+AuthPod --> SMSSvc : API
+ScreenPod --> AISvc : API
+
+@enduml
+
+' ============================================
+' SEQUENCE: AUTHENTICATION FLOW
+' ============================================
+@startuml SEQ_AUTHENTICATION
+!theme plain
+
+title Sequence: Authentication Flow
+
+actor User
+participant "Client (Web/Mobile)" as Client
+participant "Auth Service" as Auth
+participant "Redis (OTP Cache)" as Redis
+participant "Database" as DB
+participant "Email/SMS Service" as External
+
+User -> Client : Enter credentials
+Client -> Auth : POST /api/v1/auth/login
+Auth -> DB : Validate credentials
+DB --> Auth : User data + password hash
+Auth -> Auth : Verify password
+Auth -> Redis : Store OTP (5-min TTL)
+Redis --> Auth : Success
+Auth -> External : Send OTP (Email/SMS)
+External --> Auth : Sent
+Auth --> Client : { requiresOTP: true }
+
+User -> Client : Enter OTP
+Client -> Auth : POST /api/v1/auth/otp/verify
+Auth -> Redis : Validate OTP
+Redis --> Auth : Valid (mark as used)
+Auth -> DB : Create session
+Auth --> Client : { accessToken, refreshToken, role }
+
+@enduml
+
+' ============================================
+' SEQUENCE: STUDENT ONBOARDING FLOW
+' ============================================
+@startuml SEQ_STUDENT_ONBOARDING
+!theme plain
+
+title Sequence: Student Onboarding Flow
+
+|Student|
+|Screening Service|
+|Onboarding Service|
+
+start
+:Select role: Student;
+:Choose application path\n(College-side / Direct);
+:Submit application form;
+:Upload documents\n(Photo, Aadhar, Marksheets);
+
+|Screening Service|
+:Eligibility check;
+if (Eligible?) then (Yes)
+    :Document verification;
+    :AI scoring;
+    :Schedule interview;
+    
+    |Student|
+    :Technical interview;
+    :Behavioral interview;
+    
+    |Screening Service|
+    if (Selected?) then (Yes)
+        :Approve application;
+        
+        |Onboarding Service|
+        :Create account;
+        :Profile setup;
+        :Batch assignment;
+        :Dashboard access;
+        
+        |Student|
+        :Access Student Dashboard;
+        stop
+    else (No)
+        :Reject application;
+        stop
+    endif
+else (No)
+    :Mark ineligible;
+    stop
+endif
+
+@enduml
+
+' ============================================
+' SEQUENCE: MENTOR ONBOARDING FLOW
+' ============================================
+@startuml SEQ_MENTOR_ONBOARDING
+!theme plain
+
+title Sequence: Mentor Onboarding Flow
+
+|Student|
+|Mentor|
+|Admin|
+|Onboarding Service|
+
+start
+:Mentor|
+:Select role: Mentor;
+:Submit mentor application;
+:Enter personal information;
+:Add professional experience;
+:Add teaching expertise;
+:Upload certifications;
+
+|Admin|
+:Review mentor application;
+:Verify credentials;
+if (Verified?) then (Yes)
+    :Approve mentor;
+    
+    |Onboarding Service|
+    :Create mentor profile;
+    :Grant mentor dashboard access;
+    
+    |Mentor|
+    :Access Mentor Dashboard;
+    stop
+else (No)
+    :Reject application;
+    :Send notification;
+    stop
+endif
+
+@enduml
+
+' ============================================
+' SEQUENCE: COLLEGE ONBOARDING FLOW
+' ============================================
+@startuml SEQ_COLLEGE_ONBOARDING
+!theme plain
+
+title Sequence: College Onboarding Flow
+
+|College|
+|Admin|
+|Onboarding Service|
+
+start
+:College|
+:Select role: College;
+:Submit college application;
+:Enter institution details;
+:Add admin contact;
+:Submit program details;
+
+|Admin|
+:Review college application;
+if (Approved?) then (Yes)
+    :Approve college;
+    
+    |Onboarding Service|
+    :Create college profile;
+    :Grant college dashboard access;
+    
+    |College|
+    :Access College Dashboard;
+    stop
+else (No)
+    :Reject application;
+    :Send notification;
+    stop
+endif
+
+@enduml
+
+' ============================================
+' ROLE GOVERNANCE: 5-TIER
+' ============================================
+@startuml ROLE_GOVERNANCE
+!theme plain
+skinparam linetype ortho
+skinparam componentStyle rectangle
+
+title 5-Tier Role Governance
+
+package "Level 1: Platform Admin" #LightCoral {
+    component "Super Admin\n(Platform-wide admin)\nFull system access" as SuperAdmin
+}
+
+package "Level 2: Regional Admin" #LightSalmon {
+    component "NetPy Admin\n(Regional admin)\nManage colleges, applications" as NetPyAdmin
+}
+
+package "Level 3: Institution Admin" #PeachPuff {
+    component "College Admin\n(Institution admin)\nManage students, mentors" as CollegeAdmin
+}
+
+package "Level 4: Educators" #PaleTurquoise {
+    component "Mentor\n(Instructor)\nView assigned students" as Mentor
+}
+
+package "Level 5: Learners" #PaleGreen {
+    component "Student\n(Learner)\nOwn profile, courses" as Student
+    component "Company\n(Employer)\nView eligible students" as Company
+}
+
+SuperAdmin -down-> NetPyAdmin : Manages
+SuperAdmin -down-> CollegeAdmin : Manages
+SuperAdmin -down-> Mentor : Manages
+SuperAdmin -down-> Student : Manages
+SuperAdmin -down-> Company : Manages
+
+NetPyAdmin -down-> CollegeAdmin : Manages
+NetPyAdmin -down-> Student : Manages
+
+CollegeAdmin -down-> Student : Manages
+CollegeAdmin -down-> Mentor : Manages
+
+Mentor -down-> Student : Views assigned
+
+@enduml
+
+' ============================================
+' API ENDPOINTS REFERENCE
+' ============================================
+@startuml API_ENDPOINTS
+!theme plain
+skinparam linetype ortho
+skinparam componentStyle rectangle
+
+title API Endpoints Reference
+
+package "Auth Service\n/api/v1/auth" #LightBlue {
+    component "POST /login\n(Login with credentials)"
+    component "POST /otp/send\n(Send OTP)"
+    component "POST /otp/verify\n(Verify OTP)"
+    component "POST /2fa/enable\n(Enable 2FA)"
+    component "POST /2fa/verify\n(Verify 2FA)"
+    component "POST /logout\n(Logout)"
+    component "GET /me\n(Current user)"
+    component "POST /password/reset\n(Reset password)"
+}
+
+package "Onboarding Service\n/api/v1/onboarding" #LightGreen {
+    component "POST /student\n(Create student post-selection)"
+    component "PUT /student/:id\n(Complete student profile)"
+    component "POST /mentor\n(Submit mentor application)"
+    component "POST /mentor/:id/verify\n(Verify mentor)"
+    component "POST /college\n(Submit college application)"
+    component "POST /college/:id/approve\n(Approve college)"
+    component "POST /company\n(Submit company application)"
+}
+
+package "Screening Service\n/api/v1/applications" #LightYellow {
+    component "POST /\n(Submit application)"
+    component "POST /:id/eligibility/check\n(Check eligibility)"
+    component "POST /:id/documents/verify\n(Verify documents)"
+    component "POST /:id/score\n(AI score)"
+    component "POST /:id/interview/schedule\n(Schedule interview)"
+    component "POST /:id/select\n(Select applicant)"
+    component "POST /:id/reject\n(Reject applicant)"
+}
+
+package "Dashboard Service\n/api/v1/dashboard" #LightGrey {
+    component "GET /student\n(Student dashboard)"
+    component "GET /mentor\n(Mentor dashboard)"
+    component "GET /college\n(College dashboard)"
+    component "GET /admin\n(Admin dashboard)"
+}
+
+@enduml
+
+' ============================================
+' SECURITY CONTROLS
+' ============================================
+@startuml SECURITY_CONTROLS
+!theme plain
+skinparam linetype ortho
+skinparam componentStyle rectangle
+
+title Security Controls Summary
+
+package "Authentication Security" #LightCoral {
+    component "Password Storage\nArgon2/PBKDF2 hashing with salt"
+    component "OTP\n6-digit, 5-minute expiry, rate limiting"
+    component "Session\nJWT (15 min), Refresh token (7 days)"
+    component "2FA\nTOTP (Google Authenticator) + backup codes"
+    component "Rate Limiting\nRedis-based, 10 attempts per minute"
+}
+
+package "Transport Security" #LightYellow {
+    component "TLS 1.3\nCertificate pinning"
+    component "HTTPS Only"
+}
+
+package "API Security" #LightGreen {
+    component "JWT Validation"
+    component "RBAC\nRole-based Access Control"
+    component "Input Validation"
+}
+
+package "Data Security" #LightBlue {
+    component "Encryption at Rest"
+    component "Encryption in Transit"
+    component "Audit Logging"
+}
+
+@enduml
+
+' ============================================
+' DATA MODELS
+' ============================================
+@startuml DATA_MODELS
+!theme plain
+skinparam linetype ortho
+skinparam componentStyle rectangle
+
+title Core Data Models
+
+package "User Entities" #LightBlue {
+    component "User\nBase user entity with role,\nauthentication data"
+    component "Student\nStudent profile with\napplication reference, batch"
+    component "Mentor\nMentor profile with\nverification status"
+    component "College\nInstitution profile with\ncontacts, programs"
+    component "Company\nCompany profile for\nplacement/internships"
+}
+
+package "Application Entities" #LightGreen {
+    component "StudentApplication\nApplication with status,\nscoring, interview"
+    component "MentorApplication\nMentor credentials"
+    component "CollegeApplication\nInstitution details"
+    component "Interview\nScheduled interview with scores"
+}
+
+package "Auth Entities" #LightYellow {
+    component "Session\nActive session with tokens"
+    component "OTP\nOTP verification record"
+    component "Role\n5-tier governance role"
+}
+
+@enduml
+
+' ============================================
+' DECISION POINTS
+' ============================================
+@startuml DECISION_POINTS
+!theme plain
+
+title Decision Points Summary
+
+start
+:User login attempt;
+if (Existing Account?) then (Yes)
+    :Proceed to login flow;
+else (No)
+    :Redirect to onboarding;
+endif
+
+:OTP verification;
+if (OTP Valid?) then (Yes)
+    :Session created;
+else (No)
+    :Retry/Error;
+endif
+
+if (2FA Enabled?) then (Yes)
+    :2FA verification;
+endif
+
+:Redirect to role-specific dashboard;
+stop
+
+@enduml
+
+' ============================================
+' TECHNOLOGY STACK
+' ============================================
+@startuml TECHNOLOGY_STACK
+!theme plain
+skinparam linetype ortho
+skinparam componentStyle rectangle
+
+title Technology Stack
+
+package "Frontend" #LightYellow {
+    component "React"
+    component "Next.js"
+    component "React Native"
+}
+
+package "API & Backend" #LightBlue {
+    component "Express.js"
+    component "NestJS"
+    component "Node.js"
+}
+
+package "Data Layer" #LightGreen {
+    component "PostgreSQL"
+    component "Redis"
+    component "RabbitMQ\n(Message Queue)"
+    component "Elasticsearch\n(Document Search)"
+}
+
+package "External Services" #LightGrey {
+    component "Python/TensorFlow/PyTorch\n(AI/ML)"
+    component "SendGrid/AWS SES\n(Email)"
+    component "Twilio/AWS SNS\n(SMS)"
+    component "AWS S3/Azure Blob\n(Storage)"
+}
+
+package "Infrastructure" #LightCoral {
+    component "Docker\n(Container)"
+    component "Kubernetes\n(Orchestration)"
+    component "GitHub Actions/ArgoCD\n(CI/CD)"
+}
+
+@enduml

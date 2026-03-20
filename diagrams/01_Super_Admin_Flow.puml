@@ -1,0 +1,72 @@
+@startuml
+title NetPy M2i LMS - Super Admin Complete Workflow
+
+start
+
+:Super Admin Login;
+:Enter Email & Password;
+:OTP Authentication;
+
+if (Authentication Successful?) then (Yes)
+
+:Access Super Admin Dashboard;
+
+partition "College Management" {
+  :Create College;
+  :Edit College Details;
+  :Activate / Deactivate College;
+}
+
+partition "NetPy Admin Management" {
+  :Create NetPy Admin;
+  :Assign Colleges;
+  :Manage Admin Permissions;
+}
+
+partition "Mentor Management" {
+  :Create Mentor Profile;
+  :Assign College to Mentor;
+  :Assign Batch to Mentor;
+  :Manage Mentor Permissions;
+  :Activate / Deactivate Mentor;
+}
+
+partition "Course Management" {
+  :Create Master Course;
+  :Define Modules;
+  :Set Evaluation Criteria;
+  :Publish Course;
+}
+
+partition "Batch Management" {
+  :Create Batch;
+  :Assign Mentor;
+  :Add Students;
+  :Set Schedule;
+}
+
+partition "Student Applications" {
+  :Review Applications;
+  :Verify Documents;
+  :Schedule Interview;
+  :Approve / Reject Candidates;
+}
+
+partition "Reports & Monitoring" {
+  :View Reports;
+  :Track Student Performance;
+  :Monitor Batch Progress;
+}
+
+:Save Changes;
+:Return to Dashboard;
+
+else (No)
+
+:Authentication Failed;
+:Retry Login;
+
+endif
+
+stop
+@enduml

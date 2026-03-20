@@ -1,0 +1,112 @@
+@startuml NetPy_M2i_LMS_Authentication_Onboarding
+title NetPy M2i LMS - Authentication & Onboarding Flow
+
+start
+
+:User Opens Platform;
+
+if (Existing Account?) then (Yes)
+
+:Login with Email / Username + Password;
+:Send OTP;
+
+if (OTP Valid?) then (Yes)
+
+:Optional 2FA;
+:Session Established (Timeout Managed);
+:Identify User Role;
+
+if (Role?) then (Super Admin)
+:Redirect to Super Admin Dashboard;
+
+elseif (NetPy Admin)
+:Redirect to NetPy Admin Dashboard;
+
+elseif (College Admin)
+:Redirect to College Dashboard;
+
+elseif (Mentor)
+:Redirect to Mentor Dashboard;
+
+elseif (Company)
+:Redirect to Company Dashboard;
+
+else (Student)
+:Redirect to Student Dashboard;
+
+endif
+
+else (No)
+
+:Show Error;
+:Retry OTP;
+
+endif
+
+else (No - New Applicant)
+
+:Select Role;
+
+if (Student?) then (Yes)
+
+if (Application Path?) then (College-side)
+
+:College Distributes NetPy Form;
+:Student Submits to College Admin;
+:College Admin Reviews;
+:Forward Application to NetPy;
+
+else (Direct Student)
+
+:Student Fills Form on NetPy Portal;
+:Submit Directly to NetPy;
+
+endif
+
+:Eligibility Checks;
+:Document Verification;
+:AI-assisted Application Scoring;
+:Send Interview Invitation;
+:Self-service Interview Scheduling;
+:Conduct Technical + Behavioral Interview;
+
+if (Selected?) then (Yes)
+
+:Secure Account Creation;
+:Profile Configuration;
+:Assign Batch (College or Open);
+:Dashboard Access Enabled;
+
+else (No)
+
+:Professional Rejection Handling;
+
+endif
+
+elseif (Mentor)
+
+:Start Mentor Onboarding;
+:Enter Personal Information;
+:Add Professional Experience;
+:Add Teaching Expertise;
+:Upload Certifications;
+:Admin Verification;
+:Create Mentor Profile;
+:Redirect to Mentor Dashboard;
+
+else (College)
+
+:Start College Onboarding;
+:Enter Institution Details;
+:Add Admin Contact;
+:Submit Program Details;
+:Admin Approval;
+:Create College Profile;
+:Redirect to College Dashboard;
+
+endif
+
+endif
+
+stop
+@enduml

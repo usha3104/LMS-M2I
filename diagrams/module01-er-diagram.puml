@@ -1,0 +1,442 @@
+@startuml M2I_LMS_Module01_ERD
+!theme plain
+hide stereotype
+skinparam linetype ortho
+skinparam roundcorner 5
+skinparam padding 2
+skinparam entityBackgroundColor White
+skinparam arrowColor #333333
+
+title M2I LMS - Module 01: Authentication & Onboarding\nER Diagram
+
+' ============================================
+' USERS & AUTHENTICATION ENTITIES
+' ============================================
+
+entity "users" as users {
+    *id : UUID <<PK>>
+    --
+    *email : VARCHAR(255) <<UNIQUE, NOT NULL>>
+    username : VARCHAR(100) <<UNIQUE>>
+    *password_hash : VARCHAR(255) <<NOT NULL>>
+    *role : VARCHAR(20) <<ENUM>>
+    *role_id : UUID <<FK>>
+    --
+    *is_active : BOOLEAN <<DEFAULT TRUE>>
+    *is_verified : BOOLEAN <<DEFAULT FALSE>>
+    failed_login_attempts : INTEGER <<DEFAULT 0>>
+    --
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+    last_login : TIMESTAMP
+}
+
+entity "otp_verifications" as otp {
+    *id : UUID <<PK>>
+    --
+    *user_id : UUID <<FK>>
+    *otp_code : VARCHAR(6) <<NOT NULL>>
+    *otp_type : VARCHAR(20) <<ENUM>>
+    --
+    *expires_at : TIMESTAMP
+    *is_used : BOOLEAN <<DEFAULT FALSE>>
+    --
+    created_at : TIMESTAMP
+    ip_address : VARCHAR(45)
+}
+
+entity "sessions" as sessions {
+    *id : UUID <<PK>>
+    --
+    *user_id : UUID <<FK>>
+    *session_token : VARCHAR(255) <<UNIQUE>>
+    *refresh_token : VARCHAR(255) <<UNIQUE>>
+    --
+    ip_address : VARCHAR(45)
+    user_agent : TEXT
+    device_info : JSON
+    --
+    *expires_at : TIMESTAMP
+    --
+    created_at : TIMESTAMP
+    last_activity : TIMESTAMP
+}
+
+entity "two_factor_auth" as tfa {
+    *id : UUID <<PK>>
+    --
+    *user_id : UUID <<FK>> <<UNIQUE>>
+    *secret_key : VARCHAR(255)
+    --
+    *is_enabled : BOOLEAN <<DEFAULT FALSE>>
+    backup_codes : JSON
+    --
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+entity "password_resets" as pwd_reset {
+    *id : UUID <<PK>>
+    --
+    *user_id : UUID <<FK>>
+    *reset_token : VARCHAR(255) <<UNIQUE>>
+    --
+    *expires_at : TIMESTAMP
+    *is_used : BOOLEAN <<DEFAULT FALSE>>
+    --
+    created_at : TIMESTAMP
+    ip_address : VARCHAR(45)
+}
+
+' ============================================
+' ROLE-BASED ENTITIES
+' ============================================
+
+entity "super_admins" as super_admins {
+    *id : UUID <<PK>>
+    --
+    *user_id : UUID <<FK>> <<UNIQUE>>
+    *full_name : VARCHAR(255)
+    --
+    phone : VARCHAR(20)
+    profile_image : VARCHAR(500)
+    --
+    created_at : TIMESTAMP
+}
+
+entity "netpy_admins" as netpy_admins {
+    *id : UUID <<PK>>
+    --
+    *user_id : UUID <<FK>> <<UNIQUE>>
+    *full_name : VARCHAR(255)
+    --
+    phone : VARCHAR(20)
+    assigned_colleges : UUID[]
+    profile_image : VARCHAR(500)
+    --
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+entity "college_admins" as college_admins {
+    *id : UUID <<PK>>
+    --
+    *user_id : UUID <<FK>> <<UNIQUE>>
+    *college_id : UUID <<FK>>
+    *full_name : VARCHAR(255)
+    --
+    phone : VARCHAR(20)
+    department : VARCHAR(100)
+    profile_image : VARCHAR(500)
+    --
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+entity "mentors" as mentors {
+    *id : UUID <<PK>>
+    --
+    *user_id : UUID <<FK>> <<UNIQUE>>
+    *full_name : VARCHAR(255)
+    *phone : VARCHAR(20)
+    --
+    date_of_birth : DATE
+    gender : VARCHAR(10) <<ENUM>>
+    profile_image : VARCHAR(500)
+    --
+    bio : TEXT
+    linkedin_url : VARCHAR(255)
+    github_url : VARCHAR(255)
+    --
+    years_experience : INTEGER
+    current_company : VARCHAR(255)
+    current_designation : VARCHAR(255)
+    --
+    teaching_expertise : JSON
+    certifications : JSON
+    --
+    *verification_status : VARCHAR(20) <<ENUM>>
+    verified_by : UUID <<FK>>
+    verified_at : TIMESTAMP
+    --
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+entity "students" as students {
+    *id : UUID <<PK>>
+    --
+    *user_id : UUID <<FK>> <<UNIQUE>>
+    *application_id : UUID <<FK>>
+    --
+    college_id : UUID <<FK>>
+    batch_id : UUID <<FK>>
+    --
+    *full_name : VARCHAR(255)
+    *phone : VARCHAR(20)
+    --
+    date_of_birth : DATE
+    gender : VARCHAR(10) <<ENUM>>
+    profile_image : VARCHAR(500)
+    --
+    aadhar_number : VARCHAR(20) <<ENCRYPTED>>
+    address : JSON
+    --
+    guardian_name : VARCHAR(255)
+    guardian_phone : VARCHAR(20)
+    --
+    *application_path : VARCHAR(20) <<ENUM>>
+    enrollment_date : DATE
+    --
+    verification_status : VARCHAR(20) <<ENUM>>
+    --
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+entity "companies" as companies {
+    *id : UUID <<PK>>
+    --
+    *user_id : UUID <<FK>> <<UNIQUE>>
+    *company_name : VARCHAR(255)
+    --
+    company_website : VARCHAR(255)
+    company_logo : VARCHAR(500)
+    industry : VARCHAR(100)
+    company_size : VARCHAR(20) <<ENUM>>
+    description : TEXT
+    --
+    contact_person_name : VARCHAR(255)
+    contact_person_email : VARCHAR(255)
+    contact_person_phone : VARCHAR(20)
+    --
+    *verification_status : VARCHAR(20) <<ENUM>>
+    verified_by : UUID <<FK>>
+    verified_at : TIMESTAMP
+    --
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+' ============================================
+' COLLEGE & INSTITUTION ENTITIES
+' ============================================
+
+entity "colleges" as colleges {
+    *id : UUID <<PK>>
+    --
+    *college_code : VARCHAR(50) <<UNIQUE>>
+    *college_name : VARCHAR(255)
+    --
+    affiliation : VARCHAR(255)
+    university : VARCHAR(255)
+    --
+    address : JSON
+    phone : VARCHAR(20)
+    email : VARCHAR(255)
+    website : VARCHAR(255)
+    logo : VARCHAR(500)
+    --
+    institution_type : VARCHAR(50) <<ENUM>>
+    approved_programs : JSON
+    --
+    *status : VARCHAR(20) <<ENUM>>
+    *verification_status : VARCHAR(20) <<ENUM>>
+    verified_by : UUID <<FK>>
+    verified_at : TIMESTAMP
+    --
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+entity "college_contacts" as college_contacts {
+    *id : UUID <<PK>>
+    --
+    *college_id : UUID <<FK>>
+    --
+    *contact_type : VARCHAR(20) <<ENUM>>
+    *full_name : VARCHAR(255)
+    designation : VARCHAR(100)
+    email : VARCHAR(255)
+    phone : VARCHAR(20)
+    --
+    is_primary : BOOLEAN <<DEFAULT FALSE>>
+    --
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+entity "college_programs" as college_programs {
+    *id : UUID <<PK>>
+    --
+    *college_id : UUID <<FK>>
+    --
+    *program_name : VARCHAR(255)
+    program_code : VARCHAR(50)
+    department : VARCHAR(100)
+    duration_years : INTEGER
+    --
+    *status : VARCHAR(20) <<ENUM>>
+    --
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+entity "batches" as batches {
+    *id : UUID <<PK>>
+    --
+    *batch_code : VARCHAR(50) <<UNIQUE>>
+    *batch_name : VARCHAR(255)
+    --
+    college_id : UUID <<FK>>
+    --
+    *batch_type : VARCHAR(20) <<ENUM>>
+    --
+    start_date : DATE
+    end_date : DATE
+    --
+    max_students : INTEGER
+    current_students : INTEGER <<DEFAULT 0>>
+    --
+    *status : VARCHAR(20) <<ENUM>>
+    --
+    created_by : UUID <<FK>>
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+' ============================================
+' STUDENT APPLICATION ENTITIES
+' ============================================
+
+entity "student_applications" as applications {
+    *id : UUID <<PK>>
+    --
+    *application_number : VARCHAR(50) <<UNIQUE>>
+    --
+    *full_name : VARCHAR(255)
+    *email : VARCHAR(255)
+    *phone : VARCHAR(20)
+    --
+    date_of_birth : DATE
+    gender : VARCHAR(10) <<ENUM>>
+    --
+    *application_path : VARCHAR(20) <<ENUM>>
+    college_id : UUID <<FK>>
+    --
+    *applied_at : TIMESTAMP
+    --
+    *status : VARCHAR(30) <<ENUM>>
+    --
+    eligibility_status : VARCHAR(20) <<ENUM>>
+    eligibility_notes : TEXT
+    --
+    document_verification_status : VARCHAR(20) <<ENUM>>
+    document_verified_by : UUID <<FK>>
+    document_verified_at : TIMESTAMP
+    --
+    ai_score : DECIMAL(5,2)
+    ai_score_breakdown : JSON
+    --
+    interview_id : UUID <<FK>>
+    --
+    rejection_reason : TEXT
+    rejection_email_sent : BOOLEAN <<DEFAULT FALSE>>
+    --
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+entity "application_documents" as app_docs {
+    *id : UUID <<PK>>
+    --
+    *application_id : UUID <<FK>>
+    --
+    *document_type : VARCHAR(30) <<ENUM>>
+    --
+    file_path : VARCHAR(500)
+    file_name : VARCHAR(255)
+    file_size : INTEGER
+    mime_type : VARCHAR(100)
+    --
+    *is_verified : BOOLEAN <<DEFAULT FALSE>>
+    verified_by : UUID <<FK>>
+    verified_at : TIMESTAMP
+    rejection_reason : TEXT
+    --
+    uploaded_at : TIMESTAMP
+    created_at : TIMESTAMP
+}
+
+entity "interviews" as interviews {
+    *id : UUID <<PK>>
+    --
+    *application_id : UUID <<FK>>
+    --
+    interviewer_id : UUID <<FK>>
+    --
+    *interview_type : VARCHAR(20) <<ENUM>>
+    --
+    scheduled_date : DATE
+    scheduled_time : TIME
+    duration_minutes : INTEGER <<DEFAULT 60>>
+    meeting_link : VARCHAR(500)
+    --
+    *status : VARCHAR(20) <<ENUM>>
+    --
+    technical_score : INTEGER
+    behavioral_score : INTEGER
+    overall_feedback : TEXT
+    --
+    *result : VARCHAR(20) <<ENUM>>
+    --
+    completed_at : TIMESTAMP
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+' ============================================
+' RELATIONSHIPS
+' ============================================
+
+' User to Role relationships
+users ||--|| super_admins : "1:1"
+users ||--|| netpy_admins : "1:1"
+users ||--|| college_admins : "1:1"
+users ||--|| mentors : "1:1"
+users ||--|| students : "1:1"
+users ||--|| companies : "1:1"
+
+' Authentication relationships
+users ||--o{ otp : "1:M"
+users ||--o{ sessions : "1:M"
+users ||--|| tfa : "1:1"
+users ||--o{ pwd_reset : "1:M"
+
+' College relationships
+colleges ||--o{ college_contacts : "1:M"
+colleges ||--o{ college_programs : "1:M"
+colleges ||--o{ batches : "1:M"
+colleges ||--o{ college_admins : "1:M"
+colleges ||--o{ applications : "1:M"
+
+' Application relationships
+applications ||--o{ app_docs : "1:M"
+applications ||--|| interviews : "1:1"
+
+' Student relationships
+students }o--|| applications : "1:1"
+students }o--|| colleges : "M:1"
+students }o--|| batches : "M:1"
+
+' Verification relationships
+mentors }o--|| users : "verified_by"
+companies }o--|| users : "verified_by"
+colleges }o--|| users : "verified_by"
+applications }o--|| users : "document_verified_by"
+interviews }o--|| users : "interviewer"
+
+' Batch relationships
+batches }o--|| users : "created_by"
+
+@enduml

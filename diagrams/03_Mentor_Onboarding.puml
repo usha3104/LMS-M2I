@@ -1,0 +1,21 @@
+@startuml Mentor_Onboarding
+title NetPy M2i LMS - Mentor Onboarding
+
+start
+
+:Start Mentor Onboarding;
+
+:Enter Personal Information;
+:Add Professional Experience;
+:Add Teaching Expertise;
+
+:Upload Certifications;
+
+:Admin Verification;
+
+:Create Mentor Profile;
+
+:Redirect to Mentor Dashboard;
+
+stop
+@enduml
